@@ -1,3 +1,3 @@
-# Video editor example
+# example
 
-This is the example for the `video_editor` package.
+A new Flutter project.

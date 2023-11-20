@@ -88,16 +88,14 @@ class _VideoEditorState extends State<VideoEditor> {
   late final VideoEditorController _controller = VideoEditorController.file(
     widget.file,
     minDuration: const Duration(seconds: 1),
-    maxDuration: const Duration(seconds: 10),
+    maxDuration: const Duration(seconds: 46),
+    trimThumbnailsQuality: 100,
   );
 
   @override
   void initState() {
     super.initState();
-    _controller
-        .initialize(aspectRatio: 9 / 16)
-        .then((_) => setState(() {}))
-        .catchError((error) {
+    _controller.initialize(aspectRatio: 9 / 16).then((_) => setState(() {})).catchError((error) {
       // handle minumum duration bigger than video duration error
       Navigator.pop(context);
     }, test: (e) => e is VideoMinDurationError);
@@ -112,8 +110,7 @@ class _VideoEditorState extends State<VideoEditor> {
     super.dispose();
   }
 
-  void _showErrorSnackBar(String message) =>
-      ScaffoldMessenger.of(context).showSnackBar(
+  void _showErrorSnackBar(String message) => ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
           duration: const Duration(seconds: 1),
@@ -138,7 +135,7 @@ class _VideoEditorState extends State<VideoEditor> {
     await ExportService.runFFmpegCommand(
       await config.getExecuteConfig(),
       onProgress: (stats) {
-        _exportingProgress.value = config.getFFmpegProgress(stats.getTime());
+        _exportingProgress.value = config.getFFmpegProgress(stats.getTime().toInt());
       },
       onError: (e, s) => _showErrorSnackBar("Error on export video :("),
       onCompleted: (file) {
@@ -195,27 +192,23 @@ class _VideoEditorState extends State<VideoEditor> {
                               children: [
                                 Expanded(
                                   child: TabBarView(
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
+                                    physics: const NeverScrollableScrollPhysics(),
                                     children: [
                                       Stack(
                                         alignment: Alignment.center,
                                         children: [
-                                          CropGridViewer.preview(
-                                              controller: _controller),
+                                          CropGridViewer.preview(controller: _controller),
                                           AnimatedBuilder(
                                             animation: _controller.video,
                                             builder: (_, __) => AnimatedOpacity(
-                                              opacity:
-                                                  _controller.isPlaying ? 0 : 1,
+                                              opacity: _controller.isPlaying ? 0 : 1,
                                               duration: kThemeAnimationDuration,
                                               child: GestureDetector(
                                                 onTap: _controller.video.play,
                                                 child: Container(
                                                   width: 40,
                                                   height: 40,
-                                                  decoration:
-                                                      const BoxDecoration(
+                                                  decoration: const BoxDecoration(
                                                     color: Colors.white,
                                                     shape: BoxShape.circle,
                                                   ),
@@ -238,39 +231,21 @@ class _VideoEditorState extends State<VideoEditor> {
                                   margin: const EdgeInsets.only(top: 10),
                                   child: Column(
                                     children: [
-                                      TabBar(
+                                      const TabBar(
                                         tabs: [
+                                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [Padding(padding: EdgeInsets.all(5), child: Icon(Icons.content_cut)), Text('Trim')]),
                                           Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: const [
-                                                Padding(
-                                                    padding: EdgeInsets.all(5),
-                                                    child: Icon(
-                                                        Icons.content_cut)),
-                                                Text('Trim')
-                                              ]),
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: const [
-                                              Padding(
-                                                  padding: EdgeInsets.all(5),
-                                                  child:
-                                                      Icon(Icons.video_label)),
-                                              Text('Cover')
-                                            ],
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [Padding(padding: EdgeInsets.all(5), child: Icon(Icons.video_label)), Text('Cover')],
                                           ),
                                         ],
                                       ),
                                       Expanded(
                                         child: TabBarView(
-                                          physics:
-                                              const NeverScrollableScrollPhysics(),
+                                          physics: const NeverScrollableScrollPhysics(),
                                           children: [
                                             Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
+                                              mainAxisAlignment: MainAxisAlignment.center,
                                               children: _trimSlider(),
                                             ),
                                             _coverSelection(),
@@ -282,8 +257,7 @@ class _VideoEditorState extends State<VideoEditor> {
                                 ),
                                 ValueListenableBuilder(
                                   valueListenable: _isExporting,
-                                  builder: (_, bool export, Widget? child) =>
-                                      AnimatedSize(
+                                  builder: (_, bool export, Widget? child) => AnimatedSize(
                                     duration: kThemeAnimationDuration,
                                     child: export ? child : null,
                                   ),
@@ -327,16 +301,14 @@ class _VideoEditorState extends State<VideoEditor> {
             const VerticalDivider(endIndent: 22, indent: 22),
             Expanded(
               child: IconButton(
-                onPressed: () =>
-                    _controller.rotate90Degrees(RotateDirection.left),
+                onPressed: () => _controller.rotate90Degrees(RotateDirection.left),
                 icon: const Icon(Icons.rotate_left),
                 tooltip: 'Rotate unclockwise',
               ),
             ),
             Expanded(
               child: IconButton(
-                onPressed: () =>
-                    _controller.rotate90Degrees(RotateDirection.right),
+                onPressed: () => _controller.rotate90Degrees(RotateDirection.right),
                 icon: const Icon(Icons.rotate_right),
                 tooltip: 'Rotate clockwise',
               ),
@@ -376,10 +348,7 @@ class _VideoEditorState extends State<VideoEditor> {
     );
   }
 
-  String formatter(Duration duration) => [
-        duration.inMinutes.remainder(60).toString().padLeft(2, '0'),
-        duration.inSeconds.remainder(60).toString().padLeft(2, '0')
-      ].join(":");
+  String formatter(Duration duration) => [duration.inMinutes.remainder(60).toString().padLeft(2, '0'), duration.inSeconds.remainder(60).toString().padLeft(2, '0')].join(":");
 
   List<Widget> _trimSlider() {
     return [
@@ -419,6 +388,7 @@ class _VideoEditorState extends State<VideoEditor> {
           horizontalMargin: height / 4,
           child: TrimTimeline(
             controller: _controller,
+            quantity: 50,
             padding: const EdgeInsets.only(top: 10),
           ),
         ),
