@@ -58,7 +58,7 @@ abstract class FFmpegVideoEditorConfig {
     final startdx = controller.videoWidth * controller.minCrop.dx;
     final startdy = controller.videoHeight * controller.minCrop.dy;
 
-    return "crop=${enddx - startdx}:${enddy - startdy}:$startdx:$startdy";
+    return "${controller.overlay.length > 1 ? '[out${controller.overlay.length - 1}]' : ''}crop=${enddx - startdx}:${enddy - startdy}:$startdx:$startdy";
   }
 
   /// Convert the controller's [rotation] value into a [String]
@@ -86,13 +86,14 @@ abstract class FFmpegVideoEditorConfig {
     String prev = '0';
     for (int i = 0; i < controller.overlay.length; i++) {
       final e = controller.overlay[i];
-      final shouldAddMore = i < controller.overlay.length - 1;
-      if (shouldAddMore) {
-        prev = '[out$i]';
-      }
+      final shouldAddMore = controller.overlay.length != 1 && i < controller.overlay.length;
+      final next = '[out$i]';
       result.add(
-        '${i == 0 ? '[0]' : prev}[${i + 1}]overlay=x=0:y=0${shouldAddMore ? "$prev;" : ''}',
+        '${i == 0 ? '[0]' : prev}[${i + 1}]overlay=x=0:y=0${shouldAddMore ? "$next;" : ''}',
       );
+      if (shouldAddMore) {
+        prev = next;
+      }
     }
     return result.isNotEmpty ? result.join('') : '';
   }
@@ -100,7 +101,7 @@ abstract class FFmpegVideoEditorConfig {
   /// Returns the list of all the active filters
   List<String> getExportFilters() {
     if (!isFiltersEnabled) return [];
-    final List<String> filters = [overlays, cropCmd, scaleCmd, rotationCmd];
+    final List<String> filters = [cropCmd, scaleCmd, rotationCmd];
     filters.removeWhere((item) => item.isEmpty);
     return filters;
   }
@@ -108,7 +109,7 @@ abstract class FFmpegVideoEditorConfig {
   /// Returns the `-filter:v` (-vf alias) command to use in FFmpeg execution
   String filtersCmd(List<String> filters) {
     filters.removeWhere((item) => item.isEmpty);
-    return filters.isNotEmpty ? "-filter_complex '${filters.join(",")}'" : "";
+    return filters.isNotEmpty ? "-filter_complex '$overlays${filters.join(",")}'" : "";
   }
 
   /// Returns the output path of the exported file

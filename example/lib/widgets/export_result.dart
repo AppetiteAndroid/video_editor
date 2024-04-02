@@ -6,14 +6,12 @@ import 'package:fraction/fraction.dart';
 import 'package:path/path.dart' as path;
 import 'package:video_player/video_player.dart';
 
-Future<void> _getImageDimension(File file,
-    {required Function(Size) onResult}) async {
+Future<void> _getImageDimension(File file, {required Function(Size) onResult}) async {
   var decodedImage = await decodeImageFromList(file.readAsBytesSync());
   onResult(Size(decodedImage.width.toDouble(), decodedImage.height.toDouble()));
 }
 
-String _fileMBSize(File file) =>
-    ' ${(file.lengthSync() / (1024 * 1024)).toStringAsFixed(1)} MB';
+String _fileMBSize(File file) => ' ${(file.lengthSync() / (1024 * 1024)).toStringAsFixed(1)} MB';
 
 class VideoResultPopup extends StatefulWidget {
   const VideoResultPopup({super.key, required this.video});
@@ -28,8 +26,7 @@ class _VideoResultPopupState extends State<VideoResultPopup> {
   VideoPlayerController? _controller;
   FileImage? _fileImage;
   Size _fileDimension = Size.zero;
-  late final bool _isGif =
-      path.extension(widget.video.path).toLowerCase() == ".gif";
+  late final bool _isGif = path.extension(widget.video.path).toLowerCase() == ".gif";
   late String _fileMbSize;
 
   @override
@@ -72,28 +69,25 @@ class _VideoResultPopupState extends State<VideoResultPopup> {
           alignment: Alignment.bottomLeft,
           children: [
             AspectRatio(
-              aspectRatio: _fileDimension.aspectRatio == 0
-                  ? 1
-                  : _fileDimension.aspectRatio,
-              child:
-                  _isGif ? Image.file(widget.video) : VideoPlayer(_controller!),
+              aspectRatio: _fileDimension.aspectRatio == 0 ? 1 : _fileDimension.aspectRatio,
+              child: _isGif ? Image.file(widget.video) : VideoPlayer(_controller!),
             ),
-            Positioned(
-              bottom: 0,
-              child: FileDescription(
-                description: {
-                  'Video path': widget.video.path,
-                  if (!_isGif)
-                    'Video duration':
-                        '${((_controller?.value.duration.inMilliseconds ?? 0) / 1000).toStringAsFixed(2)}s',
-                  'Video ratio': Fraction.fromDouble(_fileDimension.aspectRatio)
-                      .reduce()
-                      .toString(),
-                  'Video dimension': _fileDimension.toString(),
-                  'Video size': _fileMbSize,
-                },
-              ),
-            ),
+            // Positioned(
+            //   bottom: 0,
+            //   child: FileDescription(
+            //     description: {
+            //       'Video path': widget.video.path,
+            //       if (!_isGif)
+            //         'Video duration':
+            //             '${((_controller?.value.duration.inMilliseconds ?? 0) / 1000).toStringAsFixed(2)}s',
+            //       'Video ratio': Fraction.fromDouble(_fileDimension.aspectRatio)
+            //           .reduce()
+            //           .toString(),
+            //       'Video dimension': _fileDimension.toString(),
+            //       'Video size': _fileMbSize,
+            //     },
+            //   ),
+            // ),
           ],
         ),
       ),
@@ -138,10 +132,7 @@ class _CoverResultPopupState extends State<CoverResultPopup> {
               child: FileDescription(
                 description: {
                   'Cover path': widget.cover.path,
-                  'Cover ratio':
-                      Fraction.fromDouble(_fileDimension?.aspectRatio ?? 0)
-                          .reduce()
-                          .toString(),
+                  'Cover ratio': Fraction.fromDouble(_fileDimension?.aspectRatio ?? 0).reduce().toString(),
                   'Cover dimension': _fileDimension.toString(),
                   'Cover size': _fileMbSize,
                 },
