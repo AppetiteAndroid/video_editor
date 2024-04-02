@@ -112,6 +112,7 @@ class _VideoEditorState extends State<VideoEditor> {
     _exportingProgress.dispose();
     _isExporting.dispose();
     _controller.dispose();
+    _textController.dispose();
     ExportService.dispose();
     super.dispose();
   }
@@ -119,7 +120,7 @@ class _VideoEditorState extends State<VideoEditor> {
   void _showErrorSnackBar(String message) => ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
-          duration: const Duration(seconds: 1),
+          duration: const Duration(minutes: 1),
         ),
       );
 
@@ -138,12 +139,14 @@ class _VideoEditorState extends State<VideoEditor> {
       // },
     );
 
+    var execute = await config.getExecuteConfig();
+    print(execute);
     await ExportService.runFFmpegCommand(
-      await config.getExecuteConfig(),
+      execute,
       onProgress: (stats) {
         _exportingProgress.value = config.getFFmpegProgress(stats.getTime().toInt());
       },
-      onError: (e, s) => _showErrorSnackBar("Error on export video :("),
+      onError: (e, s) => _showErrorSnackBar("Error on export video :( $e $s"),
       onCompleted: (file) {
         _isExporting.value = false;
         if (!mounted) return;

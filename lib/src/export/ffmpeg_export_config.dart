@@ -81,10 +81,26 @@ abstract class FFmpegVideoEditorConfig {
   /// The result is in format `scale=width*scale:height*scale`
   String get scaleCmd => scale == 1.0 ? "" : "scale=iw*$scale:ih*$scale";
 
+  String get overlays {
+    final result = [];
+    String prev = '0';
+    for (int i = 0; i < controller.overlay.length; i++) {
+      final e = controller.overlay[i];
+      final shouldAddMore = i < controller.overlay.length - 1;
+      if (shouldAddMore) {
+        prev = '[out$i]';
+      }
+      result.add(
+        '${i == 0 ? '[0]' : prev}[${i + 1}]overlay=x=0:y=0${shouldAddMore ? "$prev;" : ''}',
+      );
+    }
+    return result.isNotEmpty ? result.join('') : '';
+  }
+
   /// Returns the list of all the active filters
   List<String> getExportFilters() {
     if (!isFiltersEnabled) return [];
-    final List<String> filters = [cropCmd, scaleCmd, rotationCmd];
+    final List<String> filters = [overlays, cropCmd, scaleCmd, rotationCmd];
     filters.removeWhere((item) => item.isEmpty);
     return filters;
   }
@@ -92,7 +108,7 @@ abstract class FFmpegVideoEditorConfig {
   /// Returns the `-filter:v` (-vf alias) command to use in FFmpeg execution
   String filtersCmd(List<String> filters) {
     filters.removeWhere((item) => item.isEmpty);
-    return filters.isNotEmpty ? "-vf '${filters.join(",")}'" : "";
+    return filters.isNotEmpty ? "-filter_complex '${filters.join(",")}'" : "";
   }
 
   /// Returns the output path of the exported file
@@ -100,8 +116,7 @@ abstract class FFmpegVideoEditorConfig {
     required String filePath,
     required FileFormat format,
   }) async {
-    final String tempPath =
-        outputDirectory ?? (await getTemporaryDirectory()).path;
+    final String tempPath = outputDirectory ?? (await getTemporaryDirectory()).path;
     final String n = name ?? path.basenameWithoutExtension(filePath);
     final int epoch = DateTime.now().millisecondsSinceEpoch;
     return "$tempPath/${n}_$epoch.${format.extension}";
@@ -115,13 +130,23 @@ abstract class FFmpegVideoEditorConfig {
   /// ```
   /// Returns the [double] progress value between 0.0 and 1.0.
   double getFFmpegProgress(int time) {
-    final double progressValue =
-        time / controller.trimmedDuration.inMilliseconds;
+    final double progressValue = time / controller.trimmedDuration.inMilliseconds;
     return progressValue.clamp(0.0, 1.0);
   }
 
   /// Returns the [FFmpegVideoEditorExecute] that contains the param to provide to FFmpeg.
   Future<FFmpegVideoEditorExecute?> getExecuteConfig();
+
+  Future<String> getOverlaysPath() async {
+    final Directory directory = await getTemporaryDirectory();
+    List<String> result = [];
+    for (var element in controller.overlay) {
+      final f = File("${directory.path} ${DateTime.now().millisecond}.png");
+      f.writeAsBytesSync(element.data);
+      result.add('-i \'${f.path}\'');
+    }
+    return result.join(' ');
+  }
 }
 
 class VideoFFmpegVideoEditorConfig extends FFmpegVideoEditorConfig {
@@ -159,8 +184,7 @@ class VideoFFmpegVideoEditorConfig extends FFmpegVideoEditorConfig {
 
   /// Returns the FFmpeg command to make the generated GIF to loop infinitely
   /// [see FFmpeg doc](https://ffmpeg.org/ffmpeg-formats.html#gif-2)
-  String get gifCmd =>
-      format.extension == VideoExportFormat.gif.extension ? "-loop 0" : "";
+  String get gifCmd => format.extension == VideoExportFormat.gif.extension ? "-loop 0" : "";
 
   /// Returns the list of all the active filters, including the GIF filter
   @override
@@ -168,8 +192,7 @@ class VideoFFmpegVideoEditorConfig extends FFmpegVideoEditorConfig {
     final List<String> filters = super.getExportFilters();
     final bool isGif = format.extension == VideoExportFormat.gif.extension;
     if (isGif) {
-      filters.add(
-          'fps=${format is GifExportFormat ? (format as GifExportFormat).fps : VideoExportFormat.gif.fps}');
+      filters.add('fps=${format is GifExportFormat ? (format as GifExportFormat).fps : VideoExportFormat.gif.fps}');
     }
     return filters;
   }
@@ -179,16 +202,14 @@ class VideoFFmpegVideoEditorConfig extends FFmpegVideoEditorConfig {
   @override
   Future<FFmpegVideoEditorExecute> getExecuteConfig() async {
     final String videoPath = controller.file.path;
-    final String outputPath =
-        await getOutputPath(filePath: videoPath, format: format);
+    final String outputPath = await getOutputPath(filePath: videoPath, format: format);
     final List<String> filters = getExportFilters();
-
+    final String overlaysPath = await getOverlaysPath();
+    print("$startTrimCmd -i \'$videoPath\' $overlaysPath $toTrimCmd ${filtersCmd(filters)} $gifCmd ${filters.isEmpty ? '-c copy' : ''} -y \'$outputPath\'");
     return FFmpegVideoEditorExecute(
       command: commandBuilder != null
           ? commandBuilder!(this, "\'$videoPath\'", "\'$outputPath\'")
-          // use -y option to overwrite the output
-          // use -c copy if there is not filters to avoid re-encoding the video and speedup the process
-          : "$startTrimCmd -i \'$videoPath\' $toTrimCmd ${filtersCmd(filters)} $gifCmd ${filters.isEmpty ? '-c copy' : ''} -y \'$outputPath\'",
+          : "$startTrimCmd -i \'$videoPath\' $overlaysPath $toTrimCmd ${filtersCmd(filters)} $gifCmd ${filters.isEmpty ? '-c copy' : ''} -y \'$outputPath\'",
       outputPath: outputPath,
     );
   }
@@ -230,8 +251,7 @@ class CoverFFmpegVideoEditorConfig extends FFmpegVideoEditorConfig {
         imageFormat: ImageFormat.JPEG,
         thumbnailPath: (await getTemporaryDirectory()).path,
         video: controller.file.path,
-        timeMs: controller.selectedCoverVal?.timeMs ??
-            controller.startTrim.inMilliseconds,
+        timeMs: controller.selectedCoverVal?.timeMs ?? controller.startTrim.inMilliseconds,
         quality: quality,
       );
 
@@ -245,8 +265,7 @@ class CoverFFmpegVideoEditorConfig extends FFmpegVideoEditorConfig {
       debugPrint('VideoThumbnail library error while exporting the cover');
       return null;
     }
-    final String outputPath =
-        await getOutputPath(filePath: coverPath, format: format);
+    final String outputPath = await getOutputPath(filePath: coverPath, format: format);
     final List<String> filters = getExportFilters();
 
     return FFmpegVideoEditorExecute(

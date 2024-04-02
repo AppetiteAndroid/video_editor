@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:video_editor/src/models/filter.dart';
 import 'package:video_editor/src/models/overlay_data.dart';

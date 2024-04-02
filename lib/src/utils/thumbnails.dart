@@ -5,7 +5,7 @@ import 'package:video_editor/src/controller.dart';
 import 'package:video_editor/src/models/cover_data.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 
-Stream<List<Uint8List>> generateTrimThumbnails(
+Stream<List<Uint8List>> generateFullVideoThumbnails(
   VideoEditorController controller, {
   required int quantity,
 }) async* {
@@ -32,13 +32,38 @@ Stream<List<Uint8List>> generateTrimThumbnails(
   }
 }
 
+Stream<List<Uint8List>> generateTrimmedVideoThumbnails(
+  VideoEditorController controller, {
+  required int quantity,
+}) async* {
+  final String path = controller.file.path;
+  final double eachPart = controller.trimmedDuration.inMilliseconds / quantity;
+  List<Uint8List> byteList = [];
+
+  for (int i = controller.startTrim.inMilliseconds; i <= controller.endTrim.inMilliseconds; i = i + eachPart.floor()) {
+    try {
+      final Uint8List? bytes = await VideoThumbnail.thumbnailData(
+        imageFormat: ImageFormat.JPEG,
+        video: path,
+        timeMs: i,
+        quality: controller.trimThumbnailsQuality,
+      );
+      if (bytes != null) {
+        byteList.add(bytes);
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+
+    yield byteList;
+  }
+}
+
 Stream<List<CoverData>> generateCoverThumbnails(
   VideoEditorController controller, {
   required int quantity,
 }) async* {
-  final int duration = controller.isTrimmed
-      ? controller.trimmedDuration.inMilliseconds
-      : controller.videoDuration.inMilliseconds;
+  final int duration = controller.isTrimmed ? controller.trimmedDuration.inMilliseconds : controller.videoDuration.inMilliseconds;
   final double eachPart = duration / quantity;
   List<CoverData> byteList = [];
 
@@ -46,10 +71,7 @@ Stream<List<CoverData>> generateCoverThumbnails(
     try {
       final CoverData bytes = await generateSingleCoverThumbnail(
         controller.file.path,
-        timeMs: (controller.isTrimmed
-                ? (eachPart * i) + controller.startTrim.inMilliseconds
-                : (eachPart * i))
-            .toInt(),
+        timeMs: (controller.isTrimmed ? (eachPart * i) + controller.startTrim.inMilliseconds : (eachPart * i)).toInt(),
         quality: controller.coverThumbnailsQuality,
       );
 

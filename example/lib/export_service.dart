@@ -24,17 +24,25 @@ class ExportService {
     return FFmpegKit.executeAsync(
       execute.command,
       (session) async {
-        final state =
-            FFmpegKitConfig.sessionStateToString(await session.getState());
+        final state = FFmpegKitConfig.sessionStateToString(await session.getState());
         final code = await session.getReturnCode();
 
         if (ReturnCode.isSuccess(code)) {
           onCompleted(File(execute.outputPath));
         } else {
           if (onError != null) {
+            var s = await session.getOutput();
+            final failStackTrace = await session.getFailStackTrace();
+
+            // The list of logs generated for this execution
+            final logs = await session.getLogs();
+            print(failStackTrace);
+            for (var element in logs) {
+              print(element.getMessage());
+            }
+            print(s);
             onError(
-              Exception(
-                  'FFmpeg process exited with state $state and return code $code.\n${await session.getOutput()}'),
+              Exception('FFmpeg process exited with state $state and return code $code.\n$s'),
               StackTrace.current,
             );
           }

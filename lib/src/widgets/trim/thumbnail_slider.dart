@@ -1,25 +1,30 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+
 import 'package:video_editor/src/controller.dart';
+import 'package:video_editor/src/models/transform_data.dart';
 import 'package:video_editor/src/utils/helpers.dart';
 import 'package:video_editor/src/utils/thumbnails.dart';
-import 'package:video_editor/src/models/transform_data.dart';
 import 'package:video_editor/src/widgets/crop/crop_grid_painter.dart';
 import 'package:video_editor/src/widgets/image_viewer.dart';
 import 'package:video_editor/src/widgets/transform.dart';
 
 class ThumbnailSlider extends StatefulWidget {
   const ThumbnailSlider({
-    super.key,
-    required this.controller,
+    Key? key,
     this.height = 60,
-  });
+    required this.controller,
+    this.onlyTrimmed = false,
+  }) : super(key: key);
 
   /// The [height] param specifies the height of the generated thumbnails
   final double height;
 
   final VideoEditorController controller;
+
+  final bool onlyTrimmed;
 
   @override
   State<ThumbnailSlider> createState() => _ThumbnailSliderState();
@@ -74,10 +79,12 @@ class _ThumbnailSliderState extends State<ThumbnailSlider> {
     }
   }
 
-  Stream<List<Uint8List>> _generateThumbnails() => generateTrimThumbnails(
-        widget.controller,
-        quantity: _thumbnailsCount,
-      );
+  Stream<List<Uint8List>> _generateThumbnails() => widget.onlyTrimmed
+      ? generateTrimmedVideoThumbnails(widget.controller, quantity: _thumbnailsCount)
+      : generateFullVideoThumbnails(
+          widget.controller,
+          quantity: _thumbnailsCount,
+        );
 
   /// Returns the max size the layout should take with the rect value
   Size _calculateMaxLayout() {
@@ -98,7 +105,6 @@ class _ThumbnailSliderState extends State<ThumbnailSlider> {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (_, box) {
       _sliderWidth = box.maxWidth;
-
       return StreamBuilder<List<Uint8List>>(
         stream: _stream,
         builder: (_, snapshot) {
@@ -113,20 +119,36 @@ class _ThumbnailSliderState extends State<ThumbnailSlider> {
                     valueListenable: _transform,
                     builder: (_, transform, __) {
                       final index = getBestIndex(_neededThumbnails, data!.length, i);
-
                       return Stack(
                         children: [
-                          _buildSingleThumbnail(
-                            data[0],
-                            transform,
-                            isPlaceholder: true,
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 100),
+                            transitionBuilder: (child, animation) {
+                              return FadeTransition(opacity: animation, child: child);
+                            },
+                            child: index < data.length
+                                ? _buildSingleThumbnail(
+                                    data[index],
+                                    transform,
+                                    isPlaceholder: false,
+                                  )
+                                : _buildSingleThumbnail(
+                                    data[0],
+                                    transform,
+                                    isPlaceholder: true,
+                                  ),
                           ),
-                          if (index < data.length)
-                            _buildSingleThumbnail(
-                              data[index],
-                              transform,
-                              isPlaceholder: false,
-                            ),
+                          // _buildSingleThumbnail(
+                          //   data[0],
+                          //   transform,
+                          //   isPlaceholder: true,
+                          // ),
+                          // if (index < data.length)
+                          //   _buildSingleThumbnail(
+                          //     data[index],
+                          //     transform,
+                          //     isPlaceholder: false,
+                          //   ),
                         ],
                       );
                     },

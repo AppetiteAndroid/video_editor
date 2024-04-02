@@ -21,7 +21,10 @@ dependencies:
   ffmpeg_kit_flutter_min: ^6.0.3
   screenshot: ^2.3.0
   colorfilter_generator: ^0.0.8
-  lindi_sticker_widget: ^0.1.1
+  lindi_sticker_widget:
+    git:
+      url: https://github.com/AppetiteAndroid/lindi_sticker_widget.git
+      ref: b3d628b
   text_editor: ^0.7.0
 
 dev_dependencies:

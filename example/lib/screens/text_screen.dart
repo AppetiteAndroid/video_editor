@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:text_editor/text_editor.dart';
 
 import 'package:video_editor/video_editor.dart';
 import 'package:video_editor_example/fonts.dart';
+import 'package:video_editor_example/screens/test.dart';
 
 class TextScreen extends StatefulWidget {
   final VideoEditorController controller;
@@ -33,6 +35,11 @@ class _TextScreenState extends State<TextScreen> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
@@ -44,6 +51,8 @@ class _TextScreenState extends State<TextScreen> {
               IconButton(
                   onPressed: () async {
                     Uint8List? image = await controller.saveAsUint8List();
+                    widget.controller.addOverlay(OverlayData(data: image!, start: Duration.zero, end: widget.controller.maxDuration));
+                    Navigator.of(context).pop();
                     if (!mounted) return;
                   },
                   icon: const Icon(Icons.done))
@@ -75,6 +84,7 @@ class _TextScreenState extends State<TextScreen> {
                 child: ThumbnailSlider(
                   controller: widget.controller,
                   height: 60,
+                  onlyTrimmed: true,
                 ),
               )
             ],

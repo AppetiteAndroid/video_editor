@@ -5,6 +5,7 @@ export 'src/export/ffmpeg_export_config.dart';
 export 'src/models/cover_style.dart';
 export 'src/models/crop_style.dart';
 export 'src/models/trim_style.dart';
+export 'src/models/overlay_data.dart';
 export 'src/models/filter.dart';
 export 'src/utils/filters.dart';
 export 'src/widgets/cover/cover_selection.dart';
