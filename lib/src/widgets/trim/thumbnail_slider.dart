@@ -27,8 +27,7 @@ class ThumbnailSlider extends StatefulWidget {
 
 class _ThumbnailSliderState extends State<ThumbnailSlider> {
   final ValueNotifier<Rect> _rect = ValueNotifier<Rect>(Rect.zero);
-  final ValueNotifier<TransformData> _transform =
-      ValueNotifier<TransformData>(const TransformData());
+  final ValueNotifier<TransformData> _transform = ValueNotifier<TransformData>(const TransformData());
 
   /// The max width of [ThumbnailSlider]
   double _sliderWidth = 1.0;
@@ -82,9 +81,7 @@ class _ThumbnailSliderState extends State<ThumbnailSlider> {
 
   /// Returns the max size the layout should take with the rect value
   Size _calculateMaxLayout() {
-    final ratio = _rect.value == Rect.zero
-        ? widget.controller.video.value.aspectRatio
-        : _rect.value.size.aspectRatio;
+    final ratio = _rect.value == Rect.zero ? widget.controller.video.value.aspectRatio : _rect.value.size.aspectRatio;
 
     // check if the ratio is almost 1
     if (isNumberAlmost(ratio, 1)) return Size.square(widget.height);
@@ -115,8 +112,7 @@ class _ThumbnailSliderState extends State<ThumbnailSlider> {
                   itemBuilder: (_, i) => ValueListenableBuilder<TransformData>(
                     valueListenable: _transform,
                     builder: (_, transform, __) {
-                      final index =
-                          getBestIndex(_neededThumbnails, data!.length, i);
+                      final index = getBestIndex(_neededThumbnails, data!.length, i);
 
                       return Stack(
                         children: [
@@ -147,33 +143,39 @@ class _ThumbnailSliderState extends State<ThumbnailSlider> {
     TransformData transform, {
     required bool isPlaceholder,
   }) {
-    return ConstrainedBox(
-      constraints: BoxConstraints.tight(_maxLayout),
-      child: CropTransform(
-        transform: transform,
-        child: ImageViewer(
-          controller: widget.controller,
-          bytes: bytes,
-          fadeIn: !isPlaceholder,
-          child: LayoutBuilder(builder: (_, constraints) {
-            final size = constraints.biggest;
-            if (!isPlaceholder && _layout != size) {
-              _layout = size;
-              // init the widget with controller values
-              WidgetsBinding.instance.addPostFrameCallback((_) => _scaleRect());
-            }
+    return ColorFiltered(
+      colorFilter: ColorFilter.matrix(widget.controller.selectedAdjustFilter.matrix),
+      child: ColorFiltered(
+        colorFilter: ColorFilter.matrix(widget.controller.selectedFilter.matrix),
+        child: ConstrainedBox(
+          constraints: BoxConstraints.tight(_maxLayout),
+          child: CropTransform(
+            transform: transform,
+            child: ImageViewer(
+              controller: widget.controller,
+              bytes: bytes,
+              fadeIn: !isPlaceholder,
+              child: LayoutBuilder(builder: (_, constraints) {
+                final size = constraints.biggest;
+                if (!isPlaceholder && _layout != size) {
+                  _layout = size;
+                  // init the widget with controller values
+                  WidgetsBinding.instance.addPostFrameCallback((_) => _scaleRect());
+                }
 
-            return RepaintBoundary(
-              child: CustomPaint(
-                size: Size.infinite,
-                painter: CropGridPainter(
-                  _rect.value,
-                  showGrid: false,
-                  style: widget.controller.cropStyle,
-                ),
-              ),
-            );
-          }),
+                return RepaintBoundary(
+                  child: CustomPaint(
+                    size: Size.infinite,
+                    painter: CropGridPainter(
+                      _rect.value,
+                      showGrid: false,
+                      style: widget.controller.cropStyle,
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
         ),
       ),
     );

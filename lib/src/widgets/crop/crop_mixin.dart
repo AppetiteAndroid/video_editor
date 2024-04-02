@@ -12,8 +12,7 @@ import 'package:video_editor/src/widgets/video_viewer.dart';
 
 mixin CropPreviewMixin<T extends StatefulWidget> on State<T> {
   final ValueNotifier<Rect> rect = ValueNotifier<Rect>(Rect.zero);
-  final ValueNotifier<TransformData> transform =
-      ValueNotifier<TransformData>(const TransformData());
+  final ValueNotifier<TransformData> transform = ValueNotifier<TransformData>(const TransformData());
 
   Size viewerSize = Size.zero;
   Size layout = Size.zero;
@@ -34,12 +33,9 @@ mixin CropPreviewMixin<T extends StatefulWidget> on State<T> {
   }) {
     if (viewerSize == Size.zero) return Size.zero;
     final videoRatio = controller.video.value.aspectRatio;
-    final size = Size(viewerSize.width - margin.horizontal,
-        viewerSize.height - margin.vertical);
+    final size = Size(viewerSize.width - margin.horizontal, viewerSize.height - margin.vertical);
     if (shouldFlipped) {
-      return computeSizeWithRatio(videoRatio > 1 ? size.flipped : size,
-              getOppositeRatio(videoRatio))
-          .flipped;
+      return computeSizeWithRatio(videoRatio > 1 ? size.flipped : size, getOppositeRatio(videoRatio)).flipped;
     }
     return computeSizeWithRatio(size, videoRatio);
   }
@@ -58,18 +54,35 @@ mixin CropPreviewMixin<T extends StatefulWidget> on State<T> {
   }) {
     return SizedBox.fromSize(
       size: layout,
-      child: CropTransformWithAnimation(
-        shouldAnimate: layout != Size.zero,
-        transform: transform,
-        child: VideoViewer(
-          controller: controller,
-          child: buildPaint(
-            controller,
-            boundary: boundary,
-            showGrid: showGrid,
-            showCenterRects: controller.preferredCropAspectRatio == null,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CropTransformWithAnimation(
+              shouldAnimate: layout != Size.zero,
+              transform: transform,
+              child: VideoViewer(
+                controller: controller,
+                child: buildPaint(
+                  controller,
+                  boundary: boundary,
+                  showGrid: showGrid,
+                  showCenterRects: controller.preferredCropAspectRatio == null,
+                ),
+              ),
+            ),
           ),
-        ),
+          Center(
+            child: ListenableBuilder(
+              listenable: controller.video,
+              builder: (context, child) {
+                return Visibility(
+                  visible: !controller.video.value.isPlaying,
+                  child: const Icon(Icons.play_circle_outline_rounded, size: 40),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -89,8 +102,7 @@ mixin CropPreviewMixin<T extends StatefulWidget> on State<T> {
         child: ImageViewer(
           controller: controller,
           bytes: bytes,
-          child:
-              buildPaint(controller, showGrid: false, showCenterRects: false),
+          child: buildPaint(controller, showGrid: false, showCenterRects: false),
         ),
       ),
     );
@@ -132,8 +144,7 @@ mixin CropPreviewMixin<T extends StatefulWidget> on State<T> {
 
       return ValueListenableBuilder(
         valueListenable: transform,
-        builder: (_, TransformData transform, __) =>
-            buildView(context, transform),
+        builder: (_, TransformData transform, __) => buildView(context, transform),
       );
     });
   }

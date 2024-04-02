@@ -1,5 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:video_editor/src/models/filter.dart';
+import 'package:video_editor/src/models/overlay_data.dart';
+import 'package:video_editor/src/utils/filters.dart';
 import 'package:video_editor/src/utils/helpers.dart';
 import 'package:video_editor/src/utils/thumbnails.dart';
 import 'package:video_editor/src/models/cover_data.dart';
@@ -13,8 +16,7 @@ class VideoMinDurationError extends Error {
   VideoMinDurationError(this.minDuration, this.videoDuration);
 
   @override
-  String toString() =>
-      "Invalid argument (minDuration): The minimum duration ($minDuration) cannot be bigger than the duration of the video file ($videoDuration)";
+  String toString() => "Invalid argument (minDuration): The minimum duration ($minDuration) cannot be bigger than the duration of the video file ($videoDuration)";
 }
 
 enum RotateDirection { left, right }
@@ -56,9 +58,7 @@ class VideoEditorController extends ChangeNotifier {
           // https://github.com/flutter/flutter/issues/40429#issuecomment-549746165
           Platform.isIOS ? Uri.encodeFull(file.path) : file.path,
         )),
-        trimStyle = trimStyle ?? TrimSliderStyle(),
-        assert(maxDuration > minDuration,
-            'The maximum duration must be bigger than the minimum duration');
+        trimStyle = trimStyle ?? TrimSliderStyle();
 
   int _rotation = 0;
   bool _isTrimming = false;
@@ -81,8 +81,7 @@ class VideoEditorController extends ChangeNotifier {
   final VideoPlayerController _video;
 
   // Selected cover value
-  final ValueNotifier<CoverData?> _selectedCover =
-      ValueNotifier<CoverData?>(null);
+  final ValueNotifier<CoverData?> _selectedCover = ValueNotifier<CoverData?>(null);
 
   /// Get the [VideoPlayerController]
   VideoPlayerController get video => _video;
@@ -173,10 +172,8 @@ class VideoEditorController extends ChangeNotifier {
         height: newSize.height,
       );
 
-      _minCrop =
-          Offset(centerCrop.left / videoWidth, centerCrop.top / videoHeight);
-      _maxCrop = Offset(
-          centerCrop.right / videoWidth, centerCrop.bottom / videoHeight);
+      _minCrop = Offset(centerCrop.left / videoWidth, centerCrop.top / videoHeight);
+      _maxCrop = Offset(centerCrop.right / videoWidth, centerCrop.bottom / videoHeight);
       notifyListeners();
     }
   }
@@ -215,8 +212,7 @@ class VideoEditorController extends ChangeNotifier {
 
     // Trim straight away when maxDuration is lower than video duration
     if (maxDuration < videoDuration) {
-      updateTrim(
-          0.0, maxDuration.inMilliseconds / videoDuration.inMilliseconds);
+      updateTrim(0.0, maxDuration.inMilliseconds / videoDuration.inMilliseconds);
     } else {
       _updateTrimRange();
     }
@@ -236,10 +232,11 @@ class VideoEditorController extends ChangeNotifier {
     super.dispose();
   }
 
-  void _videoListener() {
+  void _videoListener() async {
     final position = videoPosition;
     if (position < _trimStart || position > _trimEnd) {
-      _video.seekTo(_trimStart);
+      await _video.seekTo(_trimStart);
+      if (_video.value.isLooping) await _video.play();
     }
   }
 
@@ -257,8 +254,7 @@ class VideoEditorController extends ChangeNotifier {
   ///
   /// Arguments range are [Offset.zero] to `Offset(1.0, 1.0)`.
   void updateCrop(Offset min, Offset max) {
-    assert(min < max,
-        'Minimum crop value ($min) cannot be bigger and maximum crop value ($max)');
+    assert(min < max, 'Minimum crop value ($min) cannot be bigger and maximum crop value ($max)');
 
     _minCrop = min;
     _maxCrop = max;
@@ -276,19 +272,15 @@ class VideoEditorController extends ChangeNotifier {
   ///
   /// Arguments range are `0.0` to `1.0`.
   void updateTrim(double min, double max) {
-    assert(min < max,
-        'Minimum trim value ($min) cannot be bigger and maximum trim value ($max)');
+    assert(min < max, 'Minimum trim value ($min) cannot be bigger and maximum trim value ($max)');
     // check that the new params does not cause a wrong duration
     final double newDuration = videoDuration.inMicroseconds * (max - min);
     // since [Duration] object does not takes integer we must round the
     // new duration up and down to check if the values are correct or not (#157)
     final Duration newDurationCeil = Duration(microseconds: newDuration.ceil());
-    final Duration newDurationFloor =
-        Duration(microseconds: newDuration.floor());
-    assert(newDurationFloor <= maxDuration,
-        'Trim duration ($newDurationFloor) cannot be smaller than $minDuration');
-    assert(newDurationCeil >= minDuration,
-        'Trim duration ($newDurationCeil) cannot be bigger than $maxDuration');
+    final Duration newDurationFloor = Duration(microseconds: newDuration.floor());
+    assert(newDurationFloor <= maxDuration, 'Trim duration ($newDurationFloor) cannot be smaller than $minDuration');
+    assert(newDurationCeil >= minDuration, 'Trim duration ($newDurationCeil) cannot be bigger than $maxDuration');
 
     _minTrim = min;
     _maxTrim = max;
@@ -348,8 +340,7 @@ class VideoEditorController extends ChangeNotifier {
   /// Get the [trimPosition], which is the videoPosition in the trim slider
   ///
   /// Range of the param is `0.0` to `1.0`.
-  double get trimPosition =>
-      videoPosition.inMilliseconds / videoDuration.inMilliseconds;
+  double get trimPosition => videoPosition.inMilliseconds / videoDuration.inMilliseconds;
 
   //-----------//
   //VIDEO COVER//
@@ -423,4 +414,38 @@ class VideoEditorController extends ChangeNotifier {
   }
 
   bool get isRotated => rotation == 90 || rotation == 270;
+
+  //------------//
+  //VIDEO FILTER//
+  //------------//
+  Filter _selectedFilter = Filters().list()[0];
+  Filter get selectedFilter => _selectedFilter;
+
+  void setFilter(Filter filter) {
+    _selectedFilter = filter;
+    notifyListeners();
+  }
+
+  //------------//
+  //VIDEO ADJUST FILTER//
+  //------------//
+  Filter _selectedAdjustFilter = Filters().list()[0];
+  Filter get selectedAdjustFilter => _selectedAdjustFilter;
+
+  void setAdjustFilter(Filter filter) {
+    _selectedAdjustFilter = filter;
+    notifyListeners();
+  }
+
+  //------------//
+  //VIDEO Overlay//
+  //------------//
+
+  final List<OverlayData> _overlay = [];
+  List<OverlayData> get overlay => _overlay;
+
+  void addOverlay(OverlayData overlayData) {
+    _overlay.add(overlayData);
+    notifyListeners();
+  }
 }

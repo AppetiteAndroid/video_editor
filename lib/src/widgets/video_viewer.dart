@@ -23,7 +23,18 @@ class VideoViewer extends StatelessWidget {
           children: [
             AspectRatio(
               aspectRatio: controller.video.value.aspectRatio,
-              child: VideoPlayer(controller.video),
+              child: ListenableBuilder(
+                listenable: controller,
+                builder: (context, child) {
+                  return ColorFiltered(
+                    colorFilter: ColorFilter.matrix(controller.selectedAdjustFilter.matrix),
+                    child: ColorFiltered(
+                      colorFilter: ColorFilter.matrix(controller.selectedFilter.matrix),
+                      child: VideoPlayer(controller.video),
+                    ),
+                  );
+                },
+              ),
             ),
             if (child != null)
               AspectRatio(

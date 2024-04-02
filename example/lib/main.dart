@@ -1,11 +1,17 @@
 import 'dart:io';
 
-import 'package:video_editor_example/crop_page.dart';
+import 'package:lindi_sticker_widget/lindi_controller.dart';
+import 'package:video_editor_example/screens/adjust_page.dart';
+import 'package:video_editor_example/screens/crop_page.dart';
 import 'package:video_editor_example/export_service.dart';
+import 'package:video_editor_example/screens/filter_page.dart';
+import 'package:video_editor_example/screens/text_screen.dart';
+import 'package:video_editor_example/screens/trim_page.dart';
 import 'package:video_editor_example/widgets/export_result.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_editor/video_editor.dart';
+import 'package:video_player/video_player.dart';
 
 void main() => runApp(
       MaterialApp(
@@ -87,15 +93,15 @@ class _VideoEditorState extends State<VideoEditor> {
 
   late final VideoEditorController _controller = VideoEditorController.file(
     widget.file,
-    minDuration: const Duration(seconds: 1),
-    maxDuration: const Duration(seconds: 46),
-    trimThumbnailsQuality: 100,
+    trimThumbnailsQuality: 70,
   );
+
+  late final LindiController _textController = LindiController();
 
   @override
   void initState() {
     super.initState();
-    _controller.initialize(aspectRatio: 9 / 16).then((_) => setState(() {})).catchError((error) {
+    _controller.initialize().then((_) => setState(() {})).catchError((error) {
       // handle minumum duration bigger than video duration error
       Navigator.pop(context);
     }, test: (e) => e is VideoMinDurationError);
@@ -186,101 +192,120 @@ class _VideoEditorState extends State<VideoEditor> {
                       children: [
                         _topNavBar(),
                         Expanded(
-                          child: DefaultTabController(
-                            length: 2,
-                            child: Column(
+                          child: CropGridViewer.preview(controller: _controller),
+                        ),
+                        ListenableBuilder(
+                          listenable: Listenable.merge([_controller, _controller.video]),
+                          builder: (context, child) {
+                            return SliderTheme(
+                              data: SliderThemeData(
+                                trackShape: CustomTrackShape(),
+                              ),
+                              child: Slider(
+                                value: _controller.videoPosition.inMilliseconds.toDouble(),
+                                onChanged: (value) {
+                                  _controller.video.seekTo(Duration(milliseconds: value.toInt()));
+                                },
+                                max: _controller.endTrim.inMilliseconds.toDouble(),
+                                min: _controller.startTrim.inMilliseconds.toDouble(),
+                              ),
+                            );
+                          },
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            AnimatedBuilder(
+                              animation: Listenable.merge([
+                                _controller,
+                                _controller.video,
+                              ]),
+                              builder: (_, __) {
+                                return Text(formatter(_controller.videoPosition - _controller.startTrim));
+                              },
+                            ),
+                            Text(
+                              formatter(_controller.trimmedDuration),
+                            )
+                          ],
+                        ),
+                        SizedBox(
+                          height: 250,
+                          width: double.infinity,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
                               children: [
-                                Expanded(
-                                  child: TabBarView(
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    children: [
-                                      Stack(
-                                        alignment: Alignment.center,
-                                        children: [
-                                          CropGridViewer.preview(controller: _controller),
-                                          AnimatedBuilder(
-                                            animation: _controller.video,
-                                            builder: (_, __) => AnimatedOpacity(
-                                              opacity: _controller.isPlaying ? 0 : 1,
-                                              duration: kThemeAnimationDuration,
-                                              child: GestureDetector(
-                                                onTap: _controller.video.play,
-                                                child: Container(
-                                                  width: 40,
-                                                  height: 40,
-                                                  decoration: const BoxDecoration(
-                                                    color: Colors.white,
-                                                    shape: BoxShape.circle,
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.play_arrow,
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      CoverViewer(controller: _controller)
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  height: 200,
-                                  margin: const EdgeInsets.only(top: 10),
-                                  child: Column(
-                                    children: [
-                                      const TabBar(
-                                        tabs: [
-                                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [Padding(padding: EdgeInsets.all(5), child: Icon(Icons.content_cut)), Text('Trim')]),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [Padding(padding: EdgeInsets.all(5), child: Icon(Icons.video_label)), Text('Cover')],
-                                          ),
-                                        ],
-                                      ),
-                                      Expanded(
-                                        child: TabBarView(
-                                          physics: const NeverScrollableScrollPhysics(),
-                                          children: [
-                                            Column(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: _trimSlider(),
-                                            ),
-                                            _coverSelection(),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                ValueListenableBuilder(
-                                  valueListenable: _isExporting,
-                                  builder: (_, bool export, Widget? child) => AnimatedSize(
-                                    duration: kThemeAnimationDuration,
-                                    child: export ? child : null,
-                                  ),
-                                  child: AlertDialog(
-                                    title: ValueListenableBuilder(
-                                      valueListenable: _exportingProgress,
-                                      builder: (_, double value, __) => Text(
-                                        "Exporting video ${(value * 100).ceil()}%",
-                                        style: const TextStyle(fontSize: 12),
+                                _bottomBatItem(Icons.crop_rotate, 'Crop', onPress: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => CropPage(controller: _controller),
+                                    ),
+                                  );
+                                }),
+                                _bottomBatItem(Icons.cut_rounded, 'Trim', onPress: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => TrimPage(controller: _controller),
+                                    ),
+                                  );
+                                }),
+                                _bottomBatItem(Icons.filter_vintage_outlined, 'Filters', onPress: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => FilterPage(controller: _controller),
+                                    ),
+                                  );
+                                }),
+                                _bottomBatItem(Icons.tune, 'Adjust', onPress: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => AdjustPage(controller: _controller),
+                                    ),
+                                  );
+                                }),
+                                _bottomBatItem(Icons.emoji_emotions_outlined, 'Sticker', onPress: () {}),
+                                _bottomBatItem(Icons.text_fields, 'Text', onPress: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => TextScreen(
+                                        controller: _controller,
+                                        lindiController: _textController,
                                       ),
                                     ),
-                                  ),
-                                )
+                                  );
+                                }),
+                                _bottomBatItem(Icons.draw, 'Draw', onPress: () {}),
                               ],
                             ),
                           ),
-                        )
+                        ),
                       ],
                     )
                   ],
                 ),
               )
             : const Center(child: CircularProgressIndicator()),
+      ),
+    );
+  }
+
+  Widget _bottomBatItem(IconData icon, String title, {required onPress}) {
+    return InkWell(
+      onTap: onPress,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white),
+            const SizedBox(height: 3),
+            Text(
+              title,
+              style: const TextStyle(color: Colors.white70),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -348,7 +373,11 @@ class _VideoEditorState extends State<VideoEditor> {
     );
   }
 
-  String formatter(Duration duration) => [duration.inMinutes.remainder(60).toString().padLeft(2, '0'), duration.inSeconds.remainder(60).toString().padLeft(2, '0')].join(":");
+  String formatter(Duration duration) => [
+        duration.inMinutes.remainder(60).toString().padLeft(2, '0'),
+        duration.inSeconds.remainder(60).toString().padLeft(2, '0'),
+        duration.inMilliseconds.remainder(1000).toString().padLeft(3, '0')
+      ].join(":");
 
   List<Widget> _trimSlider() {
     return [
@@ -358,13 +387,13 @@ class _VideoEditorState extends State<VideoEditor> {
           _controller.video,
         ]),
         builder: (_, __) {
-          final int duration = _controller.videoDuration.inSeconds;
+          final int duration = _controller.videoDuration.inMilliseconds;
           final double pos = _controller.trimPosition * duration;
 
           return Padding(
             padding: EdgeInsets.symmetric(horizontal: height / 4),
             child: Row(children: [
-              Text(formatter(Duration(seconds: pos.toInt()))),
+              Text(formatter(Duration(milliseconds: pos.toInt()))),
               const Expanded(child: SizedBox()),
               AnimatedOpacity(
                 opacity: _controller.isTrimming ? 1 : 0,
@@ -386,11 +415,6 @@ class _VideoEditorState extends State<VideoEditor> {
           controller: _controller,
           height: height,
           horizontalMargin: height / 4,
-          child: TrimTimeline(
-            controller: _controller,
-            quantity: 50,
-            padding: const EdgeInsets.only(top: 10),
-          ),
         ),
       )
     ];
@@ -421,5 +445,22 @@ class _VideoEditorState extends State<VideoEditor> {
         ),
       ),
     );
+  }
+}
+
+class CustomTrackShape extends RoundedRectSliderTrackShape {
+  @override
+  Rect getPreferredRect({
+    required RenderBox parentBox,
+    Offset offset = Offset.zero,
+    required SliderThemeData sliderTheme,
+    bool isEnabled = false,
+    bool isDiscrete = false,
+  }) {
+    final trackHeight = sliderTheme.trackHeight;
+    final trackLeft = offset.dx;
+    final trackTop = offset.dy + (parentBox.size.height - trackHeight!) / 2;
+    final trackWidth = parentBox.size.width;
+    return Rect.fromLTWH(trackLeft, trackTop, trackWidth, trackHeight);
   }
 }

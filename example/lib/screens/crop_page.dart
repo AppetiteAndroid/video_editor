@@ -18,15 +18,13 @@ class CropPage extends StatelessWidget {
             Row(children: [
               Expanded(
                 child: IconButton(
-                  onPressed: () =>
-                      controller.rotate90Degrees(RotateDirection.left),
+                  onPressed: () => controller.rotate90Degrees(RotateDirection.left),
                   icon: const Icon(Icons.rotate_left),
                 ),
               ),
               Expanded(
                 child: IconButton(
-                  onPressed: () =>
-                      controller.rotate90Degrees(RotateDirection.right),
+                  onPressed: () => controller.rotate90Degrees(RotateDirection.right),
                   icon: const Icon(Icons.rotate_right),
                 ),
               )
@@ -63,29 +61,15 @@ class CropPage extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           IconButton(
-                            onPressed: () =>
-                                controller.preferredCropAspectRatio = controller
-                                    .preferredCropAspectRatio
-                                    ?.toFraction()
-                                    .inverse()
-                                    .toDouble(),
-                            icon: controller.preferredCropAspectRatio != null &&
-                                    controller.preferredCropAspectRatio! < 1
-                                ? const Icon(
-                                    Icons.panorama_vertical_select_rounded)
+                            onPressed: () => controller.preferredCropAspectRatio = controller.preferredCropAspectRatio?.toFraction().inverse().toDouble(),
+                            icon: controller.preferredCropAspectRatio != null && controller.preferredCropAspectRatio! < 1
+                                ? const Icon(Icons.panorama_vertical_select_rounded)
                                 : const Icon(Icons.panorama_vertical_rounded),
                           ),
                           IconButton(
-                            onPressed: () =>
-                                controller.preferredCropAspectRatio = controller
-                                    .preferredCropAspectRatio
-                                    ?.toFraction()
-                                    .inverse()
-                                    .toDouble(),
-                            icon: controller.preferredCropAspectRatio != null &&
-                                    controller.preferredCropAspectRatio! > 1
-                                ? const Icon(
-                                    Icons.panorama_horizontal_select_rounded)
+                            onPressed: () => controller.preferredCropAspectRatio = controller.preferredCropAspectRatio?.toFraction().inverse().toDouble(),
+                            icon: controller.preferredCropAspectRatio != null && controller.preferredCropAspectRatio! > 1
+                                ? const Icon(Icons.panorama_horizontal_select_rounded)
                                 : const Icon(Icons.panorama_horizontal_rounded),
                           ),
                         ],
@@ -94,8 +78,7 @@ class CropPage extends StatelessWidget {
                         children: [
                           _buildCropButton(context, null),
                           _buildCropButton(context, 1.toFraction()),
-                          _buildCropButton(
-                              context, Fraction.fromString("9/16")),
+                          _buildCropButton(context, Fraction.fromString("9/16")),
                           _buildCropButton(context, Fraction.fromString("3/4")),
                         ],
                       )
@@ -132,19 +115,14 @@ class CropPage extends StatelessWidget {
   }
 
   Widget _buildCropButton(BuildContext context, Fraction? f) {
-    if (controller.preferredCropAspectRatio != null &&
-        controller.preferredCropAspectRatio! > 1) f = f?.inverse();
+    if (controller.preferredCropAspectRatio != null && controller.preferredCropAspectRatio! > 1) f = f?.inverse();
 
     return Flexible(
       child: TextButton(
         style: ElevatedButton.styleFrom(
           elevation: 0,
-          backgroundColor: controller.preferredCropAspectRatio == f?.toDouble()
-              ? Colors.grey.shade800
-              : null,
-          foregroundColor: controller.preferredCropAspectRatio == f?.toDouble()
-              ? Colors.white
-              : null,
+          backgroundColor: controller.preferredCropAspectRatio == f?.toDouble() ? Colors.grey.shade800 : null,
+          foregroundColor: controller.preferredCropAspectRatio == f?.toDouble() ? Colors.white : null,
           textStyle: Theme.of(context).textTheme.bodySmall,
         ),
         onPressed: () => controller.preferredCropAspectRatio = f?.toDouble(),
