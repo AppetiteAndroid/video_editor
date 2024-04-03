@@ -18,7 +18,7 @@ dependencies:
   image_picker: ^1.0.4
   path: ^1.8.3
   video_player: ^2.8.1
-  ffmpeg_kit_flutter_min: ^6.0.3
+  ffmpeg_kit_flutter_min_gpl: ^6.0.3
   screenshot: ^2.3.0
   colorfilter_generator: ^0.0.8
   lindi_sticker_widget:

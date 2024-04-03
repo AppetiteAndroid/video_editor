@@ -145,6 +145,7 @@ class _VideoEditorState extends State<VideoEditor> {
       execute,
       onProgress: (stats) {
         _exportingProgress.value = config.getFFmpegProgress(stats.getTime().toInt());
+        print(_exportingProgress.value);
       },
       onError: (e, s) => _showErrorSnackBar("Error on export video :( $e $s"),
       onCompleted: (file) {
@@ -250,13 +251,6 @@ class _VideoEditorState extends State<VideoEditor> {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
                                       builder: (context) => TrimPage(controller: _controller),
-                                    ),
-                                  );
-                                }),
-                                _bottomBatItem(Icons.filter_vintage_outlined, 'Filters', onPress: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => FilterPage(controller: _controller),
                                     ),
                                   );
                                 }),

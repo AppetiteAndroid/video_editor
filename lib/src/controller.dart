@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:color_filter_extension/color_filter_extension.dart';
 import 'package:flutter/material.dart';
+import 'package:video_editor/src/models/adjust_data.dart';
 import 'package:video_editor/src/models/filter.dart';
 import 'package:video_editor/src/models/overlay_data.dart';
 import 'package:video_editor/src/utils/filters.dart';
@@ -430,11 +432,50 @@ class VideoEditorController extends ChangeNotifier {
   //------------//
   //VIDEO ADJUST FILTER//
   //------------//
-  Filter _selectedAdjustFilter = Filters().list()[0];
-  Filter get selectedAdjustFilter => _selectedAdjustFilter;
+  AdjustData _adjustData = AdjustData.defaultValues();
+  AdjustData _lastAdjustData = AdjustData.defaultValues();
 
-  void setAdjustFilter(Filter filter) {
-    _selectedAdjustFilter = filter;
+  AdjustData get adjustData => _adjustData;
+
+  ColorFilter get adjFilter {
+    final c = adjustData.contrast == 1 ? 0.0 : adjustData.contrast / 1000;
+    double s = 1.0;
+
+    if (adjustData.saturation >= 0 && adjustData.saturation <= 1) {
+      s = adjustData.saturation - 1;
+    } else if (adjustData.saturation >= 1 && adjustData.saturation <= 3) {
+      s = (adjustData.saturation - 1) / 2;
+    }
+
+    return ColorFilter.matrix(
+      ColorFilterExt.merged(
+        [
+          ColorFilterExt.brightness(adjustData.brightness),
+          ColorFilterExt.contrast(c),
+          ColorFilterExt.saturation(s),
+        ],
+      ).matrix,
+    );
+  }
+
+  void setAdjustFilter(b, c, s) {
+    _adjustData = AdjustData(brightness: b, contrast: c, saturation: s);
+    notifyListeners();
+  }
+
+  void saveAdjustFilter() {
+    _lastAdjustData = _adjustData;
+    notifyListeners();
+  }
+
+  void setLatestAdjustFilter() {
+    _adjustData = _lastAdjustData;
+    Future.delayed(Duration.zero).then((value) => notifyListeners());
+  }
+
+  void resetAdjustFilter() {
+    _lastAdjustData = AdjustData(brightness: 0, contrast: 1, saturation: 1);
+    _adjustData = _lastAdjustData;
     notifyListeners();
   }
 

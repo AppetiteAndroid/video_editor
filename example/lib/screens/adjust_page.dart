@@ -11,35 +11,34 @@ class AdjustPage extends StatefulWidget {
 }
 
 class _AdjustPageState extends State<AdjustPage> {
-  double brightness = 0;
-  double contrast = 0;
-  double saturation = 0;
-  double hue = 0;
-  double sepia = 0;
+  late double brightness = widget.controller.adjustData.brightness;
+  late double contrast = widget.controller.adjustData.contrast;
+  late double saturation = widget.controller.adjustData.saturation;
 
   bool showBrightness = true;
   bool showContrast = false;
   bool showSaturation = false;
-  bool showHue = false;
-  bool showSepia = false;
 
   late ColorFilterGenerator adj;
 
   @override
   void initState() {
-    adjust();
     super.initState();
   }
 
-  adjust({b, c, s, h, se}) {
+  @override
+  void dispose() {
+    widget.controller.setLatestAdjustFilter();
+    super.dispose();
+  }
+
+  adjust({b, c, s}) {
     adj = ColorFilterGenerator(name: 'Adjust', filters: [
       ColorFilterAddons.brightness(b ?? brightness),
       ColorFilterAddons.contrast(c ?? contrast),
       ColorFilterAddons.saturation(s ?? saturation),
-      ColorFilterAddons.hue(h ?? hue),
-      ColorFilterAddons.sepia(se ?? sepia),
     ]);
-    widget.controller.setAdjustFilter(Filter('Custom', adj.matrix));
+    widget.controller.setAdjustFilter(b ?? brightness, c ?? contrast, s ?? saturation);
   }
 
   showSlider({b, c, s, h, se}) {
@@ -47,8 +46,6 @@ class _AdjustPageState extends State<AdjustPage> {
       showBrightness = b != null ? true : false;
       showContrast = c != null ? true : false;
       showSaturation = s != null ? true : false;
-      showHue = h != null ? true : false;
-      showSepia = se != null ? true : false;
     });
   }
 
@@ -59,7 +56,7 @@ class _AdjustPageState extends State<AdjustPage> {
         actions: [
           IconButton(
             onPressed: () {
-              widget.controller.setAdjustFilter(Filter('Custom', adj.matrix));
+              widget.controller.saveAdjustFilter();
               Navigator.pop(context);
             },
             icon: Center(
@@ -92,58 +89,46 @@ class _AdjustPageState extends State<AdjustPage> {
                       Visibility(
                         visible: showBrightness,
                         child: slider(
-                            value: brightness,
-                            onChanged: (value) {
-                              setState(() {
-                                brightness = value;
-                                adjust(b: brightness);
-                              });
-                            }),
+                          value: brightness,
+                          onChanged: (value) {
+                            print(value);
+                            setState(() {
+                              brightness = value;
+                              adjust(b: brightness);
+                            });
+                          },
+                          max: 1.0,
+                          min: -1.0,
+                        ),
                       ),
                       Visibility(
                         visible: showContrast,
                         child: slider(
-                            value: contrast,
-                            onChanged: (value) {
-                              setState(() {
-                                contrast = value;
-                                adjust(c: contrast);
-                              });
-                            }),
+                          value: contrast,
+                          onChanged: (value) {
+                            setState(() {
+                              contrast = value;
+                              adjust(c: contrast);
+                            });
+                          },
+                          max: 1000.0,
+                          min: -1000.0,
+                        ),
                       ),
                       Visibility(
                         visible: showSaturation,
                         child: slider(
-                            value: saturation,
-                            onChanged: (value) {
-                              setState(() {
-                                saturation = value;
-                                adjust(s: saturation);
-                              });
-                            }),
+                          value: saturation,
+                          onChanged: (value) {
+                            setState(() {
+                              saturation = value;
+                              adjust(s: saturation);
+                            });
+                          },
+                          max: 3.0,
+                          min: 0.0,
+                        ),
                       ),
-                      Visibility(
-                        visible: showHue,
-                        child: slider(
-                            value: hue,
-                            onChanged: (value) {
-                              setState(() {
-                                hue = value;
-                                adjust(h: hue);
-                              });
-                            }),
-                      ),
-                      Visibility(
-                        visible: showSepia,
-                        child: slider(
-                            value: sepia,
-                            onChanged: (value) {
-                              setState(() {
-                                sepia = value;
-                                adjust(se: sepia);
-                              });
-                            }),
-                      )
                     ],
                   ),
                 ),
@@ -155,11 +140,9 @@ class _AdjustPageState extends State<AdjustPage> {
                   onPressed: () {
                     setState(() {
                       brightness = 0;
-                      contrast = 0;
-                      saturation = 0;
-                      hue = 0;
-                      sepia = 0;
-                      adjust(b: brightness, c: contrast, s: saturation, h: hue, se: sepia);
+                      contrast = 1;
+                      saturation = 1;
+                      adjust(b: brightness, c: contrast, s: saturation);
                     });
                   },
                 ),
@@ -185,12 +168,6 @@ class _AdjustPageState extends State<AdjustPage> {
                 }),
                 _bottomBatItem(Icons.water_drop, 'Saturation', color: showSaturation ? Colors.blue : null, onPress: () {
                   showSlider(s: true);
-                }),
-                _bottomBatItem(Icons.filter_tilt_shift, 'Hue', color: showHue ? Colors.blue : null, onPress: () {
-                  showSlider(h: true);
-                }),
-                _bottomBatItem(Icons.motion_photos_on, 'Sepia', color: showSepia ? Colors.blue : null, onPress: () {
-                  showSlider(se: true);
                 }),
               ],
             ),
@@ -220,7 +197,7 @@ class _AdjustPageState extends State<AdjustPage> {
     );
   }
 
-  Widget slider({value, onChanged}) {
-    return Slider(label: '${value.toStringAsFixed(2)}', value: value, max: 1, min: -0.9, onChanged: onChanged);
+  Widget slider({value, onChanged, max = 1, min = -0.9}) {
+    return Slider(label: '${value.toStringAsFixed(2)}', value: value, max: max, min: min, onChanged: onChanged);
   }
 }

@@ -1,3 +1,4 @@
+import 'package:color_filter_extension/color_filter_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:video_editor/src/controller.dart';
 import 'package:video_player/video_player.dart';
@@ -27,11 +28,8 @@ class VideoViewer extends StatelessWidget {
                 listenable: controller,
                 builder: (context, child) {
                   return ColorFiltered(
-                    colorFilter: ColorFilter.matrix(controller.selectedAdjustFilter.matrix),
-                    child: ColorFiltered(
-                      colorFilter: ColorFilter.matrix(controller.selectedFilter.matrix),
-                      child: VideoPlayer(controller.video),
-                    ),
+                    colorFilter: controller.adjFilter,
+                    child: VideoPlayer(controller.video),
                   );
                 },
               ),

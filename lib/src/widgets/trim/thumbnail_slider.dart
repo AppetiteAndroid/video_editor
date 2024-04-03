@@ -1,6 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:typed_data';
 
+import 'package:color_filter_extension/color_filter_extension.dart';
 import 'package:flutter/material.dart';
 
 import 'package:video_editor/src/controller.dart';
@@ -166,37 +167,34 @@ class _ThumbnailSliderState extends State<ThumbnailSlider> {
     required bool isPlaceholder,
   }) {
     return ColorFiltered(
-      colorFilter: ColorFilter.matrix(widget.controller.selectedAdjustFilter.matrix),
-      child: ColorFiltered(
-        colorFilter: ColorFilter.matrix(widget.controller.selectedFilter.matrix),
-        child: ConstrainedBox(
-          constraints: BoxConstraints.tight(_maxLayout),
-          child: CropTransform(
-            transform: transform,
-            child: ImageViewer(
-              controller: widget.controller,
-              bytes: bytes,
-              fadeIn: !isPlaceholder,
-              child: LayoutBuilder(builder: (_, constraints) {
-                final size = constraints.biggest;
-                if (!isPlaceholder && _layout != size) {
-                  _layout = size;
-                  // init the widget with controller values
-                  WidgetsBinding.instance.addPostFrameCallback((_) => _scaleRect());
-                }
+      colorFilter: widget.controller.adjFilter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints.tight(_maxLayout),
+        child: CropTransform(
+          transform: transform,
+          child: ImageViewer(
+            controller: widget.controller,
+            bytes: bytes,
+            fadeIn: !isPlaceholder,
+            child: LayoutBuilder(builder: (_, constraints) {
+              final size = constraints.biggest;
+              if (!isPlaceholder && _layout != size) {
+                _layout = size;
+                // init the widget with controller values
+                WidgetsBinding.instance.addPostFrameCallback((_) => _scaleRect());
+              }
 
-                return RepaintBoundary(
-                  child: CustomPaint(
-                    size: Size.infinite,
-                    painter: CropGridPainter(
-                      _rect.value,
-                      showGrid: false,
-                      style: widget.controller.cropStyle,
-                    ),
+              return RepaintBoundary(
+                child: CustomPaint(
+                  size: Size.infinite,
+                  painter: CropGridPainter(
+                    _rect.value,
+                    showGrid: false,
+                    style: widget.controller.cropStyle,
                   ),
-                );
-              }),
-            ),
+                ),
+              );
+            }),
           ),
         ),
       ),

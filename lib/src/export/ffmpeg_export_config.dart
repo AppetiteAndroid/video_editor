@@ -89,7 +89,7 @@ abstract class FFmpegVideoEditorConfig {
       final shouldAddMore = controller.overlay.length != 1 && i < controller.overlay.length;
       final next = '[out$i]';
       result.add(
-        '${i == 0 ? '[0]' : prev}[${i + 1}]overlay=x=0:y=0${shouldAddMore ? "$next;" : ''}',
+        '${i == 0 ? '[0]' : prev}[${i + 1}]overlay=x=0:y=0${shouldAddMore ? "$next;" : controller.overlay.length == 1 ? ',' : ''}',
       );
       if (shouldAddMore) {
         prev = next;
@@ -98,10 +98,18 @@ abstract class FFmpegVideoEditorConfig {
     return result.isNotEmpty ? result.join('') : '';
   }
 
+  String get colorFilterCmd {
+    final filter = controller.adjustData;
+    if (controller.adjustData.isDefault) {
+      return '';
+    }
+    return 'eq=contrast=${filter.contrast}:brightness=${filter.brightness}:saturation=${filter.saturation}';
+  }
+
   /// Returns the list of all the active filters
   List<String> getExportFilters() {
     if (!isFiltersEnabled) return [];
-    final List<String> filters = [cropCmd, scaleCmd, rotationCmd];
+    final List<String> filters = [cropCmd, scaleCmd, rotationCmd, colorFilterCmd];
     filters.removeWhere((item) => item.isEmpty);
     return filters;
   }
@@ -109,7 +117,7 @@ abstract class FFmpegVideoEditorConfig {
   /// Returns the `-filter:v` (-vf alias) command to use in FFmpeg execution
   String filtersCmd(List<String> filters) {
     filters.removeWhere((item) => item.isEmpty);
-    return filters.isNotEmpty ? "-filter_complex '$overlays${filters.join(",")}'" : "";
+    return filters.isNotEmpty || controller.overlay.isNotEmpty ? "-filter_complex '$overlays${filters.join(",")}'" : "";
   }
 
   /// Returns the output path of the exported file
@@ -206,11 +214,12 @@ class VideoFFmpegVideoEditorConfig extends FFmpegVideoEditorConfig {
     final String outputPath = await getOutputPath(filePath: videoPath, format: format);
     final List<String> filters = getExportFilters();
     final String overlaysPath = await getOverlaysPath();
-    print("$startTrimCmd -i \'$videoPath\' $overlaysPath $toTrimCmd ${filtersCmd(filters)} $gifCmd ${filters.isEmpty ? '-c copy' : ''} -y \'$outputPath\'");
+    print(
+        "$startTrimCmd -i \'$videoPath\' $overlaysPath $toTrimCmd ${filtersCmd(filters)} $gifCmd ${filters.isEmpty && controller.overlay.isEmpty ? '-c copy' : ''} -y -c:v copy -c:a copy -threads 4 \'$outputPath\'");
     return FFmpegVideoEditorExecute(
       command: commandBuilder != null
           ? commandBuilder!(this, "\'$videoPath\'", "\'$outputPath\'")
-          : "$startTrimCmd -i \'$videoPath\' $overlaysPath $toTrimCmd ${filtersCmd(filters)} $gifCmd ${filters.isEmpty ? '-c copy' : ''} -y \'$outputPath\'",
+          : "$startTrimCmd -i \'$videoPath\' $overlaysPath $toTrimCmd ${filtersCmd(filters)} $gifCmd ${filters.isEmpty && controller.overlay.isEmpty ? '-c:v copy' : ''} -c:a copy -y -threads 4 \'$outputPath\'",
       outputPath: outputPath,
     );
   }

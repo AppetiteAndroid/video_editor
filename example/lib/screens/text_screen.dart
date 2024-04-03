@@ -72,7 +72,10 @@ class _TextScreenState extends State<TextScreen> {
                     Positioned.fill(
                       child: LindiStickerWidget(
                         controller: controller,
-                        child: const SizedBox.expand(),
+                        child: SizedBox(
+                          height: widget.controller.videoHeight,
+                          width: widget.controller.videoWidth,
+                        ),
                       ),
                     )
                   ],
